@@ -1,0 +1,4 @@
+.git
+*.bak*
+tests
+README.md
