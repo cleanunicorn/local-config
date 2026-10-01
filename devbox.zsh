@@ -305,10 +305,7 @@ devbox_update() {
     before="$(git -C "$DEVBOX_DIR" rev-parse HEAD)" || return 1
     git -C "$DEVBOX_DIR" pull --ff-only || return 1
     after="$(git -C "$DEVBOX_DIR" rev-parse HEAD)"
-    if [[ "$before" == "$after" ]]; then
-        echo "Already up to date."
-        return 0
-    fi
+    [[ "$before" == "$after" ]] && return 0   # git already said "Already up to date."
     source "$DEVBOX_DIR/devbox.zsh"
     echo "Updated and reloaded devbox.zsh (other open shells: 'source ~/.devbox/devbox.zsh' or open a new one)."
     if [[ -n "$(git -C "$DEVBOX_DIR" diff --name-only "$before" "$after" -- Dockerfile bin)" ]]; then
