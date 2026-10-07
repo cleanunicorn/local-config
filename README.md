@@ -1,25 +1,56 @@
-# shell-helpers
+# local-config
 
-Small zsh helper functions I use every day.
+My shell helpers and app config, kept in one git repo and linked into place.
 
 ## Install
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/cleanunicorn/shell-helpers/main/install.sh | sh
+git clone https://github.com/cleanunicorn/local-config.git
+cd local-config
+./install.sh --dry-run   # show what would change
+./install.sh
 ```
 
-This clones the repo into `~/.local/share/shell-helpers` (override with
-`SHELL_HELPERS_DIR`) and adds one `source` line to your `~/.zshrc`.
-Already have a checkout? Run `./install.sh` from inside it instead.
-Running it again is safe; it won't add the line twice.
+`install.sh` does two things, and is safe to run again:
 
-Update later with `git pull` in the checkout.
+1. **Links config files.** Every file under `home/` is symlinked to the same
+   path under `$HOME`, e.g. `home/.config/herdr/config.toml` →
+   `~/.config/herdr/config.toml`. The file stays in this repo, so edits show up
+   in `git status`. A file already in the way is moved to
+   `<name>.bak-<timestamp>`.
+2. **Loads the shell helpers.** Adds one line to `~/.zshrc` that sources
+   `local-config.zsh`, which loads every file in `zsh/`.
 
-The functions are **sourced**, not run as scripts, because some of them
-(`ghclone`, the attach commands) need to act on your current shell.
-The entry point `shell-helpers.zsh` loads every file in `zsh/`.
+Update later with `git pull`. Links pick up changes straight away; open a new
+shell for helper changes.
 
-## Modules
+## Layout
+
+```
+home/               mirrors $HOME; each file gets symlinked into place
+  .config/herdr/config.toml
+zsh/                zsh helpers, sourced by local-config.zsh
+local-config.zsh    entry point for ~/.zshrc
+install.sh
+```
+
+To add a config file, put it under `home/` at the same path it has under
+`$HOME` and run `./install.sh`. To add helpers, drop a `.zsh` file into `zsh/`.
+
+No secrets here: this repo is public. Keep tokens and API keys in a file that
+isn't tracked (e.g. `~/.secrets.zsh`).
+
+## Config
+
+| File | For |
+| --- | --- |
+| `home/.config/herdr/config.toml` | Herdr: gruvbox theme, symbol status indicators, alt+cmd+arrows to move between panes |
+
+## Shell helpers
+
+The helpers are **sourced**, not run as scripts, because some of them
+(`ghclone`, the attach commands) need to act on your current shell. They're
+zsh-only.
 
 ### `zsh/ghclone.zsh`
 
@@ -50,10 +81,6 @@ Needs `herdr`, `jq` and `fzf`. Run `hrh` for help.
 | `hrk` | Fuzzy-pick a running session and stop it (state kept) |
 | `hrd` | Delete all stopped sessions (permanent) |
 | `hrdx <name>` | Delete one stopped session (permanent) |
-
-## Adding a module
-
-Drop a new `.zsh` file into `zsh/`. It's picked up on the next shell start.
 
 ## License
 

@@ -1,0 +1,17 @@
+onboarding = false
+[ui]
+agent_panel_sort = "spaces"
+
+status_indicators = "symbols"
+[theme]
+name = "gruvbox"
+auto_switch = false
+
+[ui.toast]
+delivery = "herdr"
+
+[keys]
+focus_pane_left = "alt+cmd+left"
+focus_pane_down = "alt+cmd+down"
+focus_pane_up = "alt+cmd+up"
+focus_pane_right = "alt+cmd+right"

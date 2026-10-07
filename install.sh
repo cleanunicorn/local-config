@@ -1,38 +1,61 @@
 #!/bin/sh
-# Install shell-helpers: clone the repo (if needed) and source it from ~/.zshrc.
+# Install from a checkout of this repo:
 #
-#   ./install.sh                     from a checkout: use that checkout
-#   curl -fsSL <raw-url>/install.sh | sh
-#                                    clone into $SHELL_HELPERS_DIR
-#                                    (default ~/.local/share/shell-helpers)
+#   git clone https://github.com/cleanunicorn/local-config.git
+#   cd local-config && ./install.sh [--dry-run]
 #
-# Safe to run more than once.
+# 1. Symlinks every file under home/ to the same path under $HOME
+#    (home/.config/herdr/config.toml -> ~/.config/herdr/config.toml).
+#    An existing file in the way is moved aside to <name>.bak-<timestamp>.
+# 2. Adds one line to ~/.zshrc that sources local-config.zsh.
+#
+# Safe to run again: links that are already correct are left alone.
 set -eu
 
-REPO_URL="https://github.com/cleanunicorn/shell-helpers.git"
-ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
+dry_run=0
+case "${1:-}" in
+    --dry-run|-n) dry_run=1 ;;
+    "") ;;
+    *) echo "Usage: $0 [--dry-run]" >&2; exit 2 ;;
+esac
 
-script_dir="$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)"
-if [ -n "$script_dir" ] && [ -f "$script_dir/shell-helpers.zsh" ]; then
-    dir="$script_dir"
+repo="$(cd "$(dirname "$0")" && pwd)"
+[ -f "$repo/local-config.zsh" ] || { echo "Run this from a checkout of the repo." >&2; exit 1; }
+stamp="$(date +%Y%m%d-%H%M%S)"
+
+run() {
+    if [ "$dry_run" -eq 1 ]; then echo "  would: $*"; else "$@"; fi
+}
+
+echo "Linking files from $repo/home into $HOME"
+cd "$repo/home"
+find . -type f | sed 's|^\./||' | sort | while IFS= read -r rel; do
+    src="$repo/home/$rel"
+    dst="$HOME/$rel"
+
+    if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$src" ]; then
+        echo "  ok      ~/$rel"
+        continue
+    fi
+
+    run mkdir -p "$(dirname "$dst")"
+    if [ -e "$dst" ] || [ -L "$dst" ]; then
+        echo "  backup  ~/$rel -> ~/$rel.bak-$stamp"
+        run mv "$dst" "$dst.bak-$stamp"
+    fi
+    echo "  link    ~/$rel"
+    run ln -s "$src" "$dst"
+done
+
+zshrc="${ZDOTDIR:-$HOME}/.zshrc"
+if [ -f "$zshrc" ] && grep -q 'local-config\.zsh' "$zshrc"; then
+    echo "$zshrc already sources local-config.zsh"
 else
-    dir="${SHELL_HELPERS_DIR:-$HOME/.local/share/shell-helpers}"
-    if [ -d "$dir/.git" ]; then
-        echo "Updating $dir"
-        git -C "$dir" pull --ff-only
-    else
-        echo "Cloning into $dir"
-        git clone "$REPO_URL" "$dir"
+    echo "Adding local-config.zsh to $zshrc"
+    if [ "$dry_run" -eq 0 ]; then
+        printf '\n# local-config\n[ -f "%s/local-config.zsh" ] && source "%s/local-config.zsh"\n' \
+            "$repo" "$repo" >> "$zshrc"
     fi
 fi
 
-if [ -f "$ZSHRC" ] && grep -q 'shell-helpers\.zsh' "$ZSHRC"; then
-    echo "$ZSHRC already sources shell-helpers; leaving it alone."
-else
-    printf '\n# shell-helpers — %s\nsource "%s/shell-helpers.zsh"\n' \
-        "$REPO_URL" "$dir" >> "$ZSHRC"
-    echo "Added shell-helpers to $ZSHRC"
-fi
-
-command -v zsh >/dev/null 2>&1 || echo "Note: zsh is not installed; these helpers need zsh."
-echo "Done. Open a new shell, or run: source \"$dir/shell-helpers.zsh\""
+echo "Done. Open a new shell to pick up the helpers."

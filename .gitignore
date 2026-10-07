@@ -1,0 +1,9 @@
+# Never commit: backups made by install.sh, app state, secrets.
+*.bak
+*.bak-*
+*.log
+*.sock
+.env
+.env.*
+*secret*
+*.secrets*
