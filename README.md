@@ -58,7 +58,7 @@ zsh-only.
 
 | Command | Module | One-liner |
 | --- | --- | --- |
-| [`ghclone <url>`](#ghclone) | ghclone | Clone into `~/Development/github.com/<user>/<repo>` and `cd` there |
+| [`ghclone <url \| user/repo>`](#ghclone) | ghclone | Clone into `~/Development/github.com/<user>/<repo>` and `cd` there |
 | [`zl [name]`](#zl-name) | Zellij | Open the Zellij session for this folder |
 | [`zla`](#zla) | Zellij | Pick a Zellij session from a list and attach |
 | [`zlk`](#zlk) | Zellij | Pick a Zellij session and kill it (can be resurrected) |
@@ -94,21 +94,39 @@ Directory already exists: /home/you/Development/github.com/octocat/hello-world
 ~/Development/github.com/octocat/hello-world $
 ```
 
-**URLs it accepts**: paste the repo URL itself. The URL is passed to
-`git clone` unchanged, so an `ssh` URL clones over ssh and an `https` URL over
-https.
+**What you can pass**: anything that points at a repo. Copy the address
+bar from any page in the repo, a clone URL, or just `user/repo`. Extra path
+(`/tree/main`, `/blob/main/README.md`, `/issues`), a trailing slash,
+`?query` and `#fragment` are all ignored.
 
-| URL | Works? |
+| Input | Clones |
 | --- | --- |
-| `https://github.com/octocat/hello-world` | ✅ |
-| `https://github.com/octocat/hello-world.git` | ✅ |
-| `git@github.com:octocat/hello-world.git` | ✅ |
-| `https://github.com/octocat/hello-world/` (trailing slash) | ❌ |
-| `https://github.com/octocat/hello-world/tree/main` | ❌ |
-| `octocat/hello-world` (shorthand) | ❌ |
+| `octocat/hello-world` | `https://github.com/octocat/hello-world.git` |
+| `github.com/octocat/hello-world` | `https://github.com/octocat/hello-world.git` |
+| `https://github.com/octocat/hello-world` | `https://github.com/octocat/hello-world.git` |
+| `https://github.com/octocat/hello-world/tree/main` | `https://github.com/octocat/hello-world.git` |
+| `https://github.com/octocat/hello-world/blob/main/README.md` | `https://github.com/octocat/hello-world.git` |
+| `https://github.com/octocat/hello-world?tab=readme-ov-file` | `https://github.com/octocat/hello-world.git` |
+| `git@github.com:octocat/hello-world.git` | `git@github.com:octocat/hello-world.git` |
+| `ssh://git@github.com/octocat/hello-world` | `git@github.com:octocat/hello-world.git` |
 
-When it can't read a URL it prints
-`Error: Could not parse GitHub URL: <url>` and does nothing.
+All of these land in `<root>/octocat/hello-world`.
+
+**ssh or https?** A URL keeps the protocol it came with: an `ssh` URL clones
+over ssh, anything else over https. The `user/repo` shorthand uses https by
+default. To use ssh instead, set:
+
+```sh
+export GHCLONE_PROTOCOL=ssh
+```
+
+Not accepted: a user or org page with no repo (`https://github.com/octocat`)
+and non-GitHub hosts. For those it prints
+`Error: Could not parse GitHub URL: <input>` and does nothing.
+
+The folder uses the capitalisation you typed. GitHub doesn't care about case,
+but Linux does, so `octocat/Hello-World` and `octocat/hello-world` end up as
+two different folders.
 
 **Change where repos go** by setting `GHCLONE_ROOT`, e.g. in `~/.zshrc`:
 
