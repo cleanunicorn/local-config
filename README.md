@@ -68,6 +68,7 @@ zsh-only.
 | [`hr [name]`](#hr-name) | Herdr | Open the Herdr session for this folder |
 | [`hra`](#hra) | Herdr | Pick a Herdr session from a list and attach |
 | [`hrk`](#hrk) | Herdr | Pick a running Herdr session and stop it |
+| [`hru [name…]`](#hru-name) | Herdr | Move running sessions to the new Herdr version without restarting them |
 | [`hrd`](#hrd) | Herdr | Delete every stopped Herdr session |
 | [`hrdx <name>`](#hrdx-name) | Herdr | Delete one stopped Herdr session |
 | [`hrh`](#herdr) | Herdr | Print the Herdr help |
@@ -259,6 +260,30 @@ for the current folder.
 Pick a **running** session and **stop** it. Herdr saves its state, so
 `hr`/`hra` can restore it later. Only running sessions are listed; with none,
 it prints `No running Herdr sessions.`.
+
+#### `hru [name…]`
+
+After `herdr update`, running servers keep the old version until they
+restart, and restarting closes their panes and agents. `hru` instead asks each
+old server to **hand off its live panes** to the installed binary (Herdr's
+experimental live handoff, the same thing `herdr update --handoff` does). Shells,
+agents and dev servers keep running. A client attached with `hr` or `hra`
+reconnects on its own; one started with plain `herdr` exits and you run it
+again.
+
+With no names it covers every running session still on an older version,
+`default` included; pass names to do only those. It lists what it will do and
+asks first. Sessions already on the current version are skipped, and a server
+too old to hand off is reported so you can stop and reattach it instead. Run
+it outside Herdr.
+
+```console
+$ hru canary
+  canary  v0.9.3 -> v0.9.4
+Hand off these sessions to v0.9.4? Panes keep running. [y/N] y
+canary: handing off...
+canary: now on v0.9.4
+```
 
 #### `hrd`
 
