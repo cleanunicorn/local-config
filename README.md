@@ -59,6 +59,11 @@ zsh-only.
 | Command | Module | One-liner |
 | --- | --- | --- |
 | [`ghclone <url \| user/repo>`](#ghclone) | ghclone | Clone into `~/Development/github.com/<user>/<repo>` and `cd` there |
+| [`p [query]`](#p-query) | Projects | Pick a project from a list and `cd` there |
+| [`hp [query]`](#hp-query) | Projects | Pick a project, `cd` there and open its Herdr session |
+| [`gup`](#gup) | Git | Switch to `main`/`master` and pull |
+| [`gdone`](#gdone) | Git | After a merge: back to `main`/`master`, pull, delete the branch |
+| [`upall`](#upall) | Updates | Update apt, the AI CLIs and their plugins, uv tools and Herdr |
 | [`zl [name]`](#zl-name) | Zellij | Open the Zellij session for this folder |
 | [`zla`](#zla) | Zellij | Pick a Zellij session from a list and attach |
 | [`zlk`](#zlk) | Zellij | Pick a Zellij session and kill it (can be resurrected) |
@@ -134,6 +139,56 @@ two different folders.
 ```sh
 export GHCLONE_ROOT="$HOME/code"   # -> ~/code/<user>/<repo>
 ```
+
+### Projects
+
+*`zsh/projects.zsh`. Needs `fzf`; `hp` also needs `herdr` and `jq`.*
+
+#### `p [query]`
+
+Pick a project from the folders under `~/Development/github.com` (the same
+`$GHCLONE_ROOT` that `ghclone` uses) and `cd` into it. Words after `p` prefill
+the search, and a single match is taken straight away.
+
+```console
+$ p canary        # one match -> straight into theralexis/canary
+$ p               # browse every project
+```
+
+#### `hp [query]`
+
+`p`, then `hr`: jump to the project and open its Herdr session in one go.
+
+### Git
+
+*`zsh/git.zsh`. Needs `git`; `gdone` also needs `gh` and `jq`.*
+
+Both find the default branch from `origin/HEAD`, falling back to a local
+`main` or `master`.
+
+#### `gup`
+
+Switch to the default branch and pull (pruning deleted remote branches).
+
+#### `gdone`
+
+Run it on a feature branch once its PR is merged. It switches to the default
+branch, pulls, and deletes the branch. Squash and rebase merges are caught by
+asking GitHub; the branch is only deleted if its PR is merged and has exactly
+the commits on your local branch. Anything else keeps the branch and says so.
+
+### Updates
+
+*`zsh/update.zsh`.*
+
+#### `upall`
+
+Update everything in one go: `apt update` and `upgrade -y` (asks for your
+sudo password), `claude update` and your user-scope Claude plugins, `codex`,
+`opencode`, `pi`, `cctop`, every `uv tool`, then `herdr update --handoff` and
+`hru` so running Herdr sessions move to the new version without restarting.
+Tools that aren't installed are skipped. A failing step doesn't stop the rest;
+the failures are listed at the end. Run it outside Herdr.
 
 ### Session helpers: one session per folder
 
