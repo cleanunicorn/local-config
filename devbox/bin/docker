@@ -1,0 +1,13 @@
+#!/bin/sh
+# Wraps the real /usr/bin/docker: after `docker compose …` re-link the devbox
+# to its stack (devbox-compose-link). Everything else passes straight through.
+if [ "$1" = compose ] && [ -n "$DEVBOX_NAME" ]; then
+    # A foreground `up` doesn't return while the stack runs, so also link a few
+    # times in the background once containers have had a chance to start.
+    (for t in 3 7 20; do sleep "$t"; devbox-compose-link; done) </dev/null >/dev/null 2>&1 &
+    /usr/bin/docker "$@"
+    rc=$?
+    devbox-compose-link >/dev/null 2>&1
+    exit "$rc"
+fi
+exec /usr/bin/docker "$@"
