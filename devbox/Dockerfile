@@ -45,14 +45,18 @@ RUN install -m 0755 -d /etc/apt/keyrings \
 COPY --chmod=0755 bin/docker bin/devbox-compose-link /usr/local/bin/
 
 # Herdr — terminal multiplexer for coding agents. Single static binary from
-# GitHub releases; pinned like the other toolchains here.
-ARG HERDR_VERSION=0.9.2
+# GitHub releases. HERDR_VERSION is a release number or "latest"; devbox_build
+# passes a fresh HERDR_CACHE_BUST so "latest" is re-downloaded on every build
+# (only this layer and the ones after it rebuild).
+ARG HERDR_VERSION=latest
+ARG HERDR_CACHE_BUST=0
 RUN case "$(dpkg --print-architecture)" in \
       amd64) arch=x86_64 ;; \
       arm64) arch=aarch64 ;; \
       *) echo "unsupported architecture" >&2; exit 1 ;; \
     esac \
-    && curl -fsSL "https://github.com/herdrdev/herdr/releases/download/v${HERDR_VERSION}/herdr-linux-${arch}" \
+    && if [ "$HERDR_VERSION" = latest ]; then path=latest/download; else path="download/v${HERDR_VERSION}"; fi \
+    && curl -fsSL "https://github.com/herdrdev/herdr/releases/${path}/herdr-linux-${arch}" \
       -o /usr/local/bin/herdr \
     && chmod +x /usr/local/bin/herdr
 

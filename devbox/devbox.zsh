@@ -8,7 +8,8 @@
 #                               (--lan: 0.0.0.0:HPORT, reachable from your network)
 #   devbox_ports                list this folder's forwards
 #   devbox_unport HPORT         remove a forward
-#   devbox_build [TAG]          rebuild the image (tags :latest and :TAG/date)
+#   devbox_build [TAG]          rebuild the image (tags :latest and :TAG/date);
+#                               re-downloads herdr each time (HERDR_VERSION=latest)
 #   devbox_update               git pull this repo and reload these functions
 #                               (says when the image needs a devbox_build)
 #   devbox_recreate [--docker|--no-docker] [--fresh-home [--yes|-y]] [TAG]
@@ -292,8 +293,8 @@ devbox_unport() {
 
 devbox_build() {
     local tag="${1:-$(date +%F)}"
-    local -a args=()
-    [[ -S "$DEVBOX_DOCKER_SOCK" ]] && args=(--build-arg "DOCKER_GID=$(stat -c %g "$DEVBOX_DOCKER_SOCK")")
+    local -a args=(--build-arg "HERDR_CACHE_BUST=$(date +%s)")
+    [[ -S "$DEVBOX_DOCKER_SOCK" ]] && args+=(--build-arg "DOCKER_GID=$(stat -c %g "$DEVBOX_DOCKER_SOCK")")
     docker build "${args[@]}" -t "${DEVBOX_IMAGE}:latest" -t "${DEVBOX_IMAGE}:${tag}" "$DEVBOX_DIR" \
         && echo "Built ${DEVBOX_IMAGE}:latest and ${DEVBOX_IMAGE}:${tag}. Run 'devbox_recreate' in a project to move it over."
 }
