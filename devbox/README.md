@@ -5,24 +5,32 @@ One long-lived Docker container per project folder, with Claude Code, Node 22,
 
 ## Install
 
+Part of [local-config](../README.md): `./install.sh` there makes `~/.zshrc`
+load `local-config.zsh`, which loads these functions (`zsh/devbox.zsh`). Then
+build the image once:
+
 ```sh
-git clone git@github.com:cleanunicorn/devbox.git ~/.devbox
-echo '[ -f "$HOME/.devbox/devbox.zsh" ] && source "$HOME/.devbox/devbox.zsh"' >> ~/.zshrc   # or ~/.bashrc
-source ~/.devbox/devbox.zsh
 devbox_build
 ```
 
-Then, in any project folder: `devbox_shell`.
+and, in any project folder, `devbox_shell`.
+
+For bash, source the file directly from `~/.bashrc`:
+
+```sh
+[ -f ~/Development/github.com/cleanunicorn/local-config/devbox/devbox.zsh ] && \
+    source ~/Development/github.com/cleanunicorn/local-config/devbox/devbox.zsh
+```
 
 ## Update
 
 ```sh
-devbox_update        # git pull + reload the functions in this shell
+devbox_update        # git pull local-config + reload the functions in this shell
 ```
 
 If the image changed, `devbox_update` says so: run `devbox_build`, then
-`devbox_recreate` in each project. (A plain `git -C ~/.devbox pull` also works;
-new shells pick up the scripts automatically.)
+`devbox_recreate` in each project. (A plain `git pull` in local-config also
+works; new shells pick up the scripts automatically.)
 
 ## Commands
 
@@ -42,8 +50,8 @@ The full list, with options, is at the top of [`devbox.zsh`](devbox.zsh). The ma
 ## Tests
 
 ```sh
-bash tests/run.sh              # syntax + Docker integration test (isolated image/network)
-bash tests/run.sh --syntax-only
+bash devbox/tests/run.sh              # syntax + Docker integration test (isolated image/network)
+bash devbox/tests/run.sh --syntax-only
 ```
 
 Linux only (uses `stat -c`, `ss`, uid 1000).

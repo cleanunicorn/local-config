@@ -1,5 +1,6 @@
-# Devbox — one long-lived container per project folder, built from
-# ~/.devbox/Dockerfile. Sourced from ~/.zshrc and ~/.bashrc (works in both).
+# Devbox — one long-lived container per project folder, built from the
+# Dockerfile next to this file. Loaded by local-config.zsh (zsh/devbox.zsh);
+# bash: source this file from ~/.bashrc (works in both).
 #
 #   devbox_shell [--docker]     create/start this folder's devbox and open a shell
 #   devbox_stop                 stop this folder's devbox (keeps it, 'devbox_shell' restarts)
@@ -10,7 +11,7 @@
 #   devbox_unport HPORT         remove a forward
 #   devbox_build [TAG]          rebuild the image (tags :latest and :TAG/date);
 #                               re-downloads herdr each time (HERDR_VERSION=latest)
-#   devbox_update               git pull this repo and reload these functions
+#   devbox_update               git pull local-config and reload these functions
 #                               (says when the image needs a devbox_build)
 #   devbox_recreate [--docker|--no-docker] [--fresh-home [--yes|-y]] [TAG]
 #                               move this folder's devbox onto a new image, keeping
@@ -58,7 +59,14 @@
 # The old names (dev_container, del_container, new_container) still work as
 # aliases.
 
-DEVBOX_DIR="${DEVBOX_DIR:-$HOME/.devbox}"
+# Where the Dockerfile and bin/ live: the folder this file is in, unless set.
+if [[ -z "${DEVBOX_DIR:-}" ]]; then
+    if [[ -n "${BASH_VERSION:-}" ]]; then
+        DEVBOX_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    else
+        DEVBOX_DIR="${${(%):-%x}:A:h}"
+    fi
+fi
 DEVBOX_IMAGE="${DEVBOX_IMAGE:-devbox}"
 DEVBOX_NET="${DEVBOX_NET:-devnet}"
 
@@ -299,7 +307,7 @@ devbox_build() {
         && echo "Built ${DEVBOX_IMAGE}:latest and ${DEVBOX_IMAGE}:${tag}. Run 'devbox_recreate' in a project to move it over."
 }
 
-# Pulls the devbox repo and reloads these functions into the current shell.
+# Pulls the local-config repo and reloads these functions into the current shell.
 # Image inputs (Dockerfile, bin/) only take effect after devbox_build.
 devbox_update() {
     local before after
@@ -308,7 +316,7 @@ devbox_update() {
     after="$(git -C "$DEVBOX_DIR" rev-parse HEAD)"
     [[ "$before" == "$after" ]] && return 0   # git already said "Already up to date."
     source "$DEVBOX_DIR/devbox.zsh"
-    echo "Updated and reloaded devbox.zsh (other open shells: 'source ~/.devbox/devbox.zsh' or open a new one)."
+    echo "Updated and reloaded devbox.zsh (other open shells: 'source ${DEVBOX_DIR}/devbox.zsh' or open a new one)."
     if [[ -n "$(git -C "$DEVBOX_DIR" diff --name-only "$before" "$after" -- Dockerfile bin)" ]]; then
         echo "The image changed — run 'devbox_build', then 'devbox_recreate' in each project."
     fi
