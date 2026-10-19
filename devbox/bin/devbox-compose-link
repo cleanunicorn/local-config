@@ -1,0 +1,28 @@
+#!/bin/sh
+# Make a --docker devbox see its compose stack the way the host does. Compose
+# containers run as siblings on the host daemon, so from inside the devbox:
+#   - their networks aren't joined, so service names (mongo) don't resolve;
+#   - their published ports sit on the HOST's 127.0.0.1, not the devbox's.
+# This joins the project's networks and forwards each published port on the
+# devbox's own 127.0.0.1, so mongodb://127.0.0.1:27017 works like on the host.
+# Idempotent: re-joining is a no-op and a second socat can't bind a taken port.
+[ -n "$DEVBOX_NAME" ] && [ -n "$COMPOSE_PROJECT_NAME" ] && [ -S /var/run/docker.sock ] || exit 0
+D=/usr/bin/docker
+P="label=com.docker.compose.project=$COMPOSE_PROJECT_NAME"
+
+for net in $($D network ls -q --filter "$P"); do
+    $D network connect "$net" "$DEVBOX_NAME" 2>/dev/null
+done
+
+for c in $($D ps -q --filter "$P"); do
+    svc=$($D inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' "$c")
+    $D inspect -f '{{range $p, $b := .HostConfig.PortBindings}}{{range $b}}{{.HostPort}} {{$p}}{{"\n"}}{{end}}{{end}}' "$c" |
+    while read -r hport cport; do
+        case "$cport" in */tcp) ;; *) continue ;; esac
+        [ -n "$hport" ] || continue
+        # setsid: survive `make`'s `trap 'kill 0'` and the shell that started us.
+        setsid socat "TCP-LISTEN:${hport},bind=127.0.0.1,fork,reuseaddr" "TCP:${svc}:${cport%/tcp}" \
+            </dev/null >/dev/null 2>&1 &
+    done
+done
+exit 0
