@@ -1,0 +1,12 @@
+#!/bin/sh
+# herdr runs from ~/.local/bin (the home volume), like Claude, so `herdr update`
+# can replace it and the update survives devbox_recreate. A home without a copy
+# (new, or created before this) gets the image's on first use; after that
+# ~/.local/bin comes first in PATH and this shim is no longer reached.
+set -e
+dest="$HOME/.local/bin/herdr"
+if [ ! -x "$dest" ]; then
+    mkdir -p "${dest%/*}"
+    cp /usr/local/share/devbox/herdr "$dest"
+fi
+exec "$dest" "$@"

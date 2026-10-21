@@ -41,13 +41,16 @@ RUN install -m 0755 -d /etc/apt/keyrings \
       docker-ce-cli docker-compose-plugin docker-buildx-plugin \
     && rm -rf /var/lib/apt/lists/*
 # Links --docker devboxes to their compose stacks; /usr/local/bin/docker
-# shadows the real /usr/bin/docker (see the scripts for details).
-COPY --chmod=0755 bin/docker bin/devbox-compose-link /usr/local/bin/
+# shadows the real /usr/bin/docker (see the scripts for details). bin/herdr
+# copies herdr into the home volume on first use (see below).
+COPY --chmod=0755 bin/docker bin/devbox-compose-link bin/herdr /usr/local/bin/
 
 # Herdr — terminal multiplexer for coding agents. Single static binary from
 # GitHub releases. HERDR_VERSION is a release number or "latest"; devbox_build
 # passes a fresh HERDR_CACHE_BUST so "latest" is re-downloaded on every build
-# (only this layer and the ones after it rebuild).
+# (only this layer and the ones after it rebuild). This is only the seed copy:
+# each home runs its own ~/.local/bin/herdr (see bin/herdr), which
+# `herdr update` keeps current and devbox_recreate keeps.
 ARG HERDR_VERSION=latest
 ARG HERDR_CACHE_BUST=0
 RUN case "$(dpkg --print-architecture)" in \
@@ -56,9 +59,10 @@ RUN case "$(dpkg --print-architecture)" in \
       *) echo "unsupported architecture" >&2; exit 1 ;; \
     esac \
     && if [ "$HERDR_VERSION" = latest ]; then path=latest/download; else path="download/v${HERDR_VERSION}"; fi \
+    && install -d -m 0755 /usr/local/share/devbox \
     && curl -fsSL "https://github.com/herdrdev/herdr/releases/${path}/herdr-linux-${arch}" \
-      -o /usr/local/bin/herdr \
-    && chmod +x /usr/local/bin/herdr
+      -o /usr/local/share/devbox/herdr \
+    && chmod +x /usr/local/share/devbox/herdr
 
 # ubuntu:24.04 ships a stock `ubuntu` user on uid 1000; drop it so `dev` can
 # take that uid.
