@@ -45,6 +45,7 @@ check "zsh -n devbox.zsh"               zsh -n "$ROOT/devbox.zsh"
 check "bash -n devbox.zsh"              bash -n "$ROOT/devbox.zsh"
 check "sh -n bin/docker"                sh -n "$ROOT/bin/docker"
 check "sh -n bin/devbox-compose-link"   sh -n "$ROOT/bin/devbox-compose-link"
+check "sh -n bin/herdr"                 sh -n "$ROOT/bin/herdr"
 check "bash -n tests/run.sh"            bash -n "$ROOT/tests/run.sh"
 check "sources in bash"  bash -c 'source "$1/devbox.zsh" && cd /tmp && [[ "$(_get_container_name)" == devtmp ]]' _ "$ROOT"
 check "sources in zsh"   zsh -fc 'source "$1/devbox.zsh" && cd /tmp && [[ "$(_get_container_name)" == devtmp ]]' _ "$ROOT"
@@ -261,6 +262,9 @@ home_mount() { docker inspect -f '{{range .Mounts}}{{if eq .Destination "/home/d
 check_eq "/home/dev is the volume <name>-home" "volume:${P1_N}-home" "$(home_mount "$P1_N")"
 check "no legacy -claude/-history volumes are created" bash -c '! docker volume inspect "$1-claude" >/dev/null 2>&1 && ! docker volume inspect "$1-history" >/dev/null 2>&1' _ "$P1_N"
 check "claude is runnable from the home volume" in_box "$P1_N" claude --version
+check "herdr is runnable" in_box "$P1_N" herdr --version
+check_eq "herdr then runs from the home volume, owned by dev" "/home/dev/.local/bin/herdr 1000" \
+    "$(in_box "$P1_N" sh -c 'p=$(command -v herdr) && echo "$p $(stat -c %u "$p")"' 2>&1)"
 check_eq "home files owned by dev (uid 1000)" "1000 1000 1000 1000" \
     "$(in_box "$P1_N" stat -c %u /home/dev /home/dev/.local/bin/claude /home/dev/.claude /home/dev/.history | tr '\n' ' ' | sed 's/ $//')"
 
