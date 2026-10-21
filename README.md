@@ -30,7 +30,7 @@ shell for helper changes.
 home/               mirrors $HOME; each file gets symlinked into place
   .config/herdr/config.toml
 zsh/                zsh helpers, sourced by local-config.zsh
-devbox/             devbox: Dockerfile, bin/, tests and the devbox_* functions
+devbox/             devbox: Dockerfile, bin/, tests and the dv*/devbox_* functions
 local-config.zsh    entry point for ~/.zshrc
 install.sh
 ```
@@ -78,7 +78,8 @@ zsh-only.
 | [`hrd`](#hrd) | Herdr | Delete every stopped Herdr session |
 | [`hrdx <name>`](#hrdx-name) | Herdr | Delete one stopped Herdr session |
 | [`hrh`](#herdr) | Herdr | Print the Herdr help |
-| [`devbox_shell [--docker]`](#devbox) | Devbox | Open this folder's long-lived Docker devbox (creates it on first use) |
+| [`dv [--docker]`](#devbox) | Devbox | Open this folder's long-lived Docker devbox (creates it on first use) |
+| [`dvh`](#devbox) | Devbox | Print the devbox help (`dvk`, `dvp`, `dvr`, `dvd`, …) |
 
 ### ghclone
 
@@ -362,7 +363,7 @@ Usage: hrdx <name>
 ### Devbox
 
 *`zsh/devbox.zsh`, loading `devbox/devbox.zsh`. Needs `docker`. Linux only.
-Also works in bash: see [devbox/README.md](devbox/README.md).*
+`dvh` prints a summary in the terminal. Also works in bash: see [devbox/README.md](devbox/README.md).*
 
 One long-lived container per project folder, built from
 [`devbox/Dockerfile`](devbox/Dockerfile), with Claude Code, Node 22, `gh` and
@@ -370,22 +371,27 @@ Herdr installed. The folder is mounted at `/workspace`, and the container's
 home lives on its own volume, so logins and history survive a rebuild.
 
 ```console
-$ devbox_build                 # once, and after the Dockerfile changes
-~/projects/blog $ devbox_shell # create or start this folder's devbox and open a shell
-~/projects/blog $ devbox_port 5173   # forward devbox:5173 to localhost:5173
+$ dvb                          # build the image: once, and after the Dockerfile changes
+~/projects/blog $ dv           # create or start this folder's devbox and open a shell
+~/projects/blog $ dvp 5173     # forward devbox:5173 to localhost:5173
 ```
 
-| Command | What it does |
-| --- | --- |
-| `devbox_shell [--docker]` | Create or start this folder's devbox and open a shell (`--docker`: give it the host's Docker daemon) |
-| `devbox_stop` | Stop it; `devbox_shell` starts it again |
-| `devbox_port [--lan] CPORT [HPORT]` / `devbox_ports` / `devbox_unport HPORT` | Add, list and remove port forwards |
-| `devbox_build [TAG]` | Rebuild the image |
-| `devbox_recreate [--docker\|--no-docker] [--fresh-home [--yes]] [TAG]` | Move the devbox onto a new image, keeping its home volume |
-| `devbox_update` | `git pull` this repo and reload the functions |
-| `devbox_save [TAG]` | Snapshot the container as an image |
-| `devbox_rm [--purge]` | Remove the devbox (`--purge` also deletes its home volume) |
-| `devbox_tmp [--docker]` | Throwaway devbox, removed on exit |
+The short `dv*` names follow the `hr*`/`zl*` pattern: `dv` opens the shell,
+`dvk` stops (keeps) it, `dvd` deletes it, `dvh` prints the help. Each one is
+the same as its long `devbox_*` name, which still works.
+
+| Short | Long | What it does |
+| --- | --- | --- |
+| `dv [--docker]` | `devbox_shell` | Create or start this folder's devbox and open a shell (`--docker`: give it the host's Docker daemon) |
+| `dvk` | `devbox_stop` | Stop it; `dv` starts it again |
+| `dvp [--lan] CPORT [HPORT]` / `dvpl` / `dvpx HPORT` | `devbox_port` / `devbox_ports` / `devbox_unport` | Add, list and remove port forwards |
+| `dvb [TAG]` | `devbox_build` | Rebuild the image |
+| `dvr [--docker\|--no-docker] [--fresh-home [--yes]] [TAG]` | `devbox_recreate` | Move the devbox onto a new image, keeping its home volume |
+| `dvu` | `devbox_update` | `git pull` this repo and reload the functions |
+| `dvs [TAG]` | `devbox_save` | Snapshot the container as an image |
+| `dvd [--purge]` | `devbox_rm` | Remove the devbox (`--purge` also deletes its home volume) |
+| `dvt [--docker]` | `devbox_tmp` | Throwaway devbox, removed on exit |
+| `dvh` | | Print this list in the terminal |
 
 Full details, including what `--docker` allows and what survives a recreate,
 are at the top of [`devbox/devbox.zsh`](devbox/devbox.zsh) and in

@@ -36,13 +36,18 @@ works; new shells pick up the scripts automatically.)
 
 The full list, with options, is at the top of [`devbox.zsh`](devbox.zsh). The main ones:
 
-| Command | What it does |
-|---|---|
-| `devbox_shell [--docker]` | create/start this folder's devbox and open a shell |
-| `devbox_recreate [--docker\|--no-docker] [--fresh-home [--yes]]` | move the devbox onto a new image, keeping its home volume |
-| `devbox_port [--lan] CPORT [HPORT]` | forward a container port to the host |
-| `devbox_rm [--purge]` | remove the devbox (`--purge` also deletes its home volume) |
-| `devbox_tmp [--docker]` | throwaway devbox, removed on exit |
+| Short | Command | What it does |
+|---|---|---|
+| `dv [--docker]` | `devbox_shell` | create/start this folder's devbox and open a shell |
+| `dvr [--docker\|--no-docker] [--fresh-home [--yes]]` | `devbox_recreate` | move the devbox onto a new image, keeping its home volume |
+| `dvp [--lan] CPORT [HPORT]` | `devbox_port` | forward a container port to the host |
+| `dvd [--purge]` | `devbox_rm` | remove the devbox (`--purge` also deletes its home volume) |
+| `dvt [--docker]` | `devbox_tmp` | throwaway devbox, removed on exit |
+
+Every command has a short `dv*` name next to its `devbox_*` one (both work):
+`dv` shell, `dvk` stop, `dvp`/`dvpl`/`dvpx` add/list/remove forwards, `dvb`
+build, `dvr` recreate, `dvu` update, `dvs` save, `dvd` delete, `dvt`
+throwaway. `dvh` prints them all.
 
 - **Home volume:** each project's `/home/dev` lives on `<name>-home`, so logins (Claude, `gh`), git config and caches survive recreates.
 - **`--docker`:** gives the devbox the host's Docker daemon (root-equivalent on the host; off by default). `docker compose` stacks started inside are reachable by service name and on `127.0.0.1` like on the host.
