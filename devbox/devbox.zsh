@@ -56,6 +56,8 @@
 # devbox_save (docker commit) does not capture the home volume: a saved image
 # has the container's system changes, not what is in /home/dev.
 #
+# Short names: dv (shell), dvk (stop), dvp/dvpl/dvpx (ports), dvb (build),
+# dvr (recreate), dvu (update), dvs (save), dvd (rm), dvt (tmp), dvh (help).
 # The old names (dev_container, del_container, new_container) still work as
 # aliases.
 
@@ -460,3 +462,51 @@ devbox_tmp() {
 dev_container() { devbox_shell "$@"; }
 del_container() { devbox_rm "$@"; }
 new_container() { devbox_tmp "$@"; }
+
+# Short names, matching the hr* (Herdr) and zl* (Zellij) helpers: dv opens
+# the shell, dv<letter> manages it. Plain functions (not aliases) so they work
+# in bash too and pass every argument through. The devbox_* names stay.
+dv()   { devbox_shell "$@"; }      # open this folder's devbox
+dvk()  { devbox_stop "$@"; }       # stop it, keeping it (like hrk)
+dvp()  { devbox_port "$@"; }       # forward a port
+dvpl() { devbox_ports "$@"; }      # list forwards
+dvpx() { devbox_unport "$@"; }     # remove one forward
+dvb()  { devbox_build "$@"; }      # rebuild the image
+dvr()  { devbox_recreate "$@"; }   # move onto a new image
+dvu()  { devbox_update "$@"; }     # pull local-config and reload
+dvs()  { devbox_save "$@"; }       # snapshot as an image
+dvd()  { devbox_rm "$@"; }         # delete the devbox (like hrd)
+dvt()  { devbox_tmp "$@"; }        # throwaway devbox
+
+dvh() {
+    cat <<'HELP'
+Devbox helpers (long names: devbox_*, still work)
+──────────────────────────────────────────────────────────────
+dv [--docker]       Create/start this folder's devbox and open a
+                    shell (devbox_shell). --docker: host's Docker.
+dvk                 STOP it; kept, dv starts it again (devbox_stop).
+
+dvp [--lan] CPORT [HPORT]
+                    Forward devbox:CPORT to localhost:HPORT
+                    (devbox_port). --lan: reachable from your network.
+dvpl                List this folder's forwards (devbox_ports).
+dvpx HPORT          Remove one forward (devbox_unport).
+
+dvb [TAG]           Rebuild the image (devbox_build).
+dvr [--docker|--no-docker] [--fresh-home [--yes|-y]] [TAG]
+                    Move this devbox onto a new image, keeping its
+                    home volume (devbox_recreate).
+dvu                 git pull local-config and reload (devbox_update).
+dvs [TAG]           Snapshot the container as an image (devbox_save).
+
+dvd [--purge]       DELETE this folder's devbox; keeps the home
+                    volume unless --purge (devbox_rm).
+dvt [--docker]      Throwaway devbox, removed on exit (devbox_tmp).
+
+dvh                 Show this help.
+──────────────────────────────────────────────────────────────
+stop   = container kept, home volume and forwards untouched.
+delete = container and forwards removed; --purge also the home.
+──────────────────────────────────────────────────────────────
+HELP
+}

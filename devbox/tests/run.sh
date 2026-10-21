@@ -49,6 +49,47 @@ check "bash -n tests/run.sh"            bash -n "$ROOT/tests/run.sh"
 check "sources in bash"  bash -c 'source "$1/devbox.zsh" && cd /tmp && [[ "$(_get_container_name)" == devtmp ]]' _ "$ROOT"
 check "sources in zsh"   zsh -fc 'source "$1/devbox.zsh" && cd /tmp && [[ "$(_get_container_name)" == devtmp ]]' _ "$ROOT"
 
+# ---------------------------------------------------------------- short names
+# No Docker: each devbox_* is replaced by a stub that prints its name and
+# arguments, so this checks only the dv* -> devbox_* mapping.
+section "dv* short names (mocked, no Docker)"
+DV_MAP="dv:devbox_shell dvk:devbox_stop dvp:devbox_port dvpl:devbox_ports dvpx:devbox_unport
+dvb:devbox_build dvr:devbox_recreate dvu:devbox_update dvs:devbox_save dvd:devbox_rm dvt:devbox_tmp"
+DV_STUBS='for f in devbox_shell devbox_stop devbox_port devbox_ports devbox_unport devbox_build devbox_recreate devbox_update devbox_save devbox_rm devbox_tmp; do
+    eval "$f() { printf %s $f; for a in \"\$@\"; do printf \" [%s]\" \"\$a\"; done; echo; }"
+done'
+for sh in bash zsh; do
+    flag=-c; [[ "$sh" == zsh ]] && flag=-fc
+    for pair in $DV_MAP; do
+        short="${pair%%:*}" long="${pair#*:}"
+        out="$("$sh" "$flag" 'source "$1/devbox.zsh"; eval "$2"; "$3" --lan "a b" 8080' _ "$ROOT" "$DV_STUBS" "$short" 2>&1)"
+        check_eq "$sh: $short calls $long with its arguments" "$long [--lan] [a b] [8080]" "$out"
+    done
+    out="$("$sh" "$flag" 'source "$1/devbox.zsh"; eval "$2"; dv' _ "$ROOT" "$DV_STUBS" 2>&1)"
+    check_eq "$sh: dv with no arguments passes none" "devbox_shell" "$out"
+    check "$sh: devbox_* and old names still defined" "$sh" "$flag" 'source "$1/devbox.zsh"
+        for f in devbox_shell devbox_stop devbox_port devbox_ports devbox_unport devbox_build devbox_recreate devbox_update devbox_save devbox_rm devbox_tmp dev_container del_container new_container; do
+            type "$f" >/dev/null 2>&1 || exit 1
+        done' _ "$ROOT"
+done
+# dvh documents exactly the defined dv* commands.
+help="$(bash -c 'source "$1/devbox.zsh"; dvh' _ "$ROOT" 2>&1)"
+listed="$(printf '%s\n' "$help" | grep -oE '^dv[a-z]*' | sort | tr '\n' ' ')"
+defined="$(bash -c 'source "$1/devbox.zsh"; compgen -A function dv' _ "$ROOT" | sort | tr '\n' ' ')"
+check_eq "dvh lists every dv* function" "$defined" "$listed"
+for pair in $DV_MAP; do check_has "dvh names ${pair#*:}" "(${pair#*:})" "$help"; done
+# A real function end to end, against a stub docker that knows no containers.
+mkdir -p "${TMPDIR:-/tmp}/devbox-dvstub.$$"
+STUBBIN="${TMPDIR:-/tmp}/devbox-dvstub.$$"
+printf '#!/bin/sh\nexit 0\n' >"$STUBBIN/docker"; chmod +x "$STUBBIN/docker"
+check_eq "dvpl with no forwards (stub docker)" "No port forwards for this project." \
+    "$(PATH="$STUBBIN:$PATH" bash -c 'source "$1/devbox.zsh"; cd /tmp; dvpl' _ "$ROOT" 2>&1)"
+check_has "dvk with no devbox refuses (stub docker)" "No devbox for this folder" \
+    "$(PATH="$STUBBIN:$PATH" zsh -fc 'source "$1/devbox.zsh"; cd /tmp; dvk' _ "$ROOT" 2>&1)"
+check_has "dvpx with no forward refuses (stub docker)" "No forward on host port 9" \
+    "$(PATH="$STUBBIN:$PATH" bash -c 'source "$1/devbox.zsh"; cd /tmp; dvpx 9' _ "$ROOT" 2>&1)"
+rm -rf "$STUBBIN"
+
 if [[ "${1:-}" == "--syntax-only" ]]; then finish; exit; fi
 
 # ---------------------------------------------------------------- isolation
