@@ -11,6 +11,7 @@
 #   devbox_unport HPORT         remove a forward
 #   devbox_build [TAG]          rebuild the image (tags :latest and :TAG/date);
 #                               re-downloads herdr each time (HERDR_VERSION=latest)
+#                               for new homes; existing ones run 'herdr update'
 #   devbox_update               git pull local-config and reload these functions
 #                               (says when the image needs a devbox_build)
 #   devbox_recreate [--docker|--no-docker] [--fresh-home [--yes|-y]] [TAG]

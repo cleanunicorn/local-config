@@ -50,6 +50,7 @@ build, `dvr` recreate, `dvu` update, `dvs` save, `dvd` delete, `dvt`
 throwaway. `dvh` prints them all.
 
 - **Home volume:** each project's `/home/dev` lives on `<name>-home`, so logins (Claude, `gh`), git config and caches survive recreates.
+- **Claude and herdr** run from `~/.local/bin` in the home volume, so they update in place (Claude by itself, herdr with `herdr update` inside the devbox) and keep that version across recreates. A new home starts with the image's copies; `devbox_build` doesn't update existing ones.
 - **`--docker`:** gives the devbox the host's Docker daemon (root-equivalent on the host; off by default). `docker compose` stacks started inside are reachable by service name and on `127.0.0.1` like on the host.
 
 ## Tests
