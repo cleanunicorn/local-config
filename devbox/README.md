@@ -6,7 +6,8 @@ One long-lived Docker container per project folder, with Claude Code, Node 22,
 ## Install
 
 Part of [local-config](../README.md): `./install.sh` there makes `~/.zshrc`
-load `local-config.zsh`, which loads these functions (`zsh/devbox.zsh`). Then
+and `~/.bashrc` load `local-config.zsh`, which loads these functions
+(`zsh/devbox.zsh`). Then
 build the image once:
 
 ```sh
@@ -15,7 +16,8 @@ devbox_build
 
 and, in any project folder, `devbox_shell`.
 
-For bash, source the file directly from `~/.bashrc`:
+To use only the devbox functions, without the rest of local-config, source the
+file directly from `~/.zshrc` or `~/.bashrc`:
 
 ```sh
 [ -f ~/Development/github.com/cleanunicorn/local-config/devbox/devbox.zsh ] && \

@@ -18,8 +18,9 @@ cd local-config
    `~/.config/herdr/config.toml`. The file stays in this repo, so edits show up
    in `git status`. A file already in the way is moved to
    `<name>.bak-<timestamp>`.
-2. **Loads the shell helpers.** Adds one line to `~/.zshrc` that sources
-   `local-config.zsh`, which loads every file in `zsh/`.
+2. **Loads the shell helpers.** Adds one line to `~/.zshrc` and `~/.bashrc`
+   (for each shell that's installed) that sources `local-config.zsh`, which
+   loads every file in `zsh/`.
 
 Update later with `git pull`. Links pick up changes straight away; open a new
 shell for helper changes.
@@ -29,14 +30,16 @@ shell for helper changes.
 ```
 home/               mirrors $HOME; each file gets symlinked into place
   .config/herdr/config.toml
-zsh/                zsh helpers, sourced by local-config.zsh
+zsh/                shell helpers (zsh and bash), sourced by local-config.zsh
 devbox/             devbox: Dockerfile, bin/, tests and the dv*/devbox_* functions
-local-config.zsh    entry point for ~/.zshrc
+local-config.zsh    entry point for ~/.zshrc and ~/.bashrc
 install.sh
 ```
 
 To add a config file, put it under `home/` at the same path it has under
-`$HOME` and run `./install.sh`. To add helpers, drop a `.zsh` file into `zsh/`.
+`$HOME` and run `./install.sh`. To add helpers, drop a `.zsh` file into `zsh/`;
+keep it working in bash too and check with `bash tests/run.sh`, which runs the
+helpers in bash and zsh against stub commands.
 
 No secrets here: this repo is public. Keep tokens and API keys in a file that
 isn't tracked (e.g. `~/.secrets.zsh`).
@@ -54,8 +57,8 @@ predictable place, and getting back into the right terminal session for the
 folder I'm in.
 
 The helpers are **sourced**, not run as scripts, because some of them
-(`ghclone`, the attach commands) need to act on your current shell. They're
-zsh-only.
+(`ghclone`, the attach commands) need to act on your current shell. They work
+in zsh and bash.
 
 | Command | Module | One-liner |
 | --- | --- | --- |
@@ -137,7 +140,7 @@ The folder uses the capitalisation you typed. GitHub doesn't care about case,
 but Linux does, so `octocat/Hello-World` and `octocat/hello-world` end up as
 two different folders.
 
-**Change where repos go** by setting `GHCLONE_ROOT`, e.g. in `~/.zshrc`:
+**Change where repos go** by setting `GHCLONE_ROOT`, e.g. in `~/.zshrc` or `~/.bashrc`:
 
 ```sh
 export GHCLONE_ROOT="$HOME/code"   # -> ~/code/<user>/<repo>
@@ -286,8 +289,9 @@ zldx old-experiment
 
 ### Herdr
 
-*`zsh/herdr.zsh`. Needs `herdr`, `jq` and `fzf`. `hrh` prints a summary in
-the terminal.*
+*`zsh/herdr.zsh`. Needs `herdr`, `jq` and `fzf`; in bash, `hru` also needs
+`python3` to talk to the Herdr sockets. `hrh` prints a summary in the
+terminal.*
 
 Herdr always has a built-in session called `default`. The helpers leave it
 out of the attach and delete lists so you don't touch it by accident.
@@ -363,7 +367,7 @@ Usage: hrdx <name>
 ### Devbox
 
 *`zsh/devbox.zsh`, loading `devbox/devbox.zsh`. Needs `docker`. Linux only.
-`dvh` prints a summary in the terminal. Also works in bash: see [devbox/README.md](devbox/README.md).*
+`dvh` prints a summary in the terminal. More in [devbox/README.md](devbox/README.md).*
 
 One long-lived container per project folder, built from
 [`devbox/Dockerfile`](devbox/Dockerfile), with Claude Code, Node 22, `gh` and

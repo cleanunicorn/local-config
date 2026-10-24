@@ -10,8 +10,8 @@ _hr_attach() {
     while true; do
         started=$SECONDS
         # stderr goes through tee so the reason stays visible and greppable.
-        { "$@" 2>&1 1>&3 3>&- | tee "$err" >&2 } 3>&1
-        rc=${pipestatus[1]}
+        # rc is the attach command's status: $pipestatus in zsh, $PIPESTATUS in bash.
+        { "$@" 2>&1 1>&3 3>&- | tee "$err" >&2; rc=${PIPESTATUS[0]:-${pipestatus[1]}}; } 3>&1
         grep -q 'live update in progress' "$err" || break
         (( SECONDS - started > 10 )) && tries=0
         (( ++tries > 15 )) && { echo "Herdr handoff did not finish; run hr again."; break; }
@@ -31,7 +31,7 @@ hr() {
     local session_name="${1:-$(basename "$PWD")}" sessions_json
     sessions_json="$(herdr session list --json)" || return
 
-    if print -r -- "$sessions_json" | jq -e --arg name "$session_name" \
+    if printf '%s\n' "$sessions_json" | jq -e --arg name "$session_name" \
         '.sessions[] | select(.name == $name)' >/dev/null; then
         printf 'Session "%s" exists. Attach/restore? [Y/n] ' "$session_name"
         local reply
@@ -52,11 +52,11 @@ hra() {
 
     local sessions_json session_names s
     sessions_json="$(herdr session list --json)" || return
-    session_names="$(print -r -- "$sessions_json" | \
+    session_names="$(printf '%s\n' "$sessions_json" | \
         jq -r '.sessions[] | select(.default | not) | .name')" || return
     [[ -n "$session_names" ]] || { hr; return; }
 
-    s="$(print -r -- "$session_names" | fzf --height 40% --reverse)" || return
+    s="$(printf '%s\n' "$session_names" | fzf --height 40% --reverse)" || return
     [[ -n "$s" ]] && _hr_attach "$s" herdr session attach "$s"
 }
 
@@ -64,11 +64,11 @@ hra() {
 hrk() {
     local sessions_json session_names s
     sessions_json="$(herdr session list --json)" || return
-    session_names="$(print -r -- "$sessions_json" | \
+    session_names="$(printf '%s\n' "$sessions_json" | \
         jq -r '.sessions[] | select(.running) | .name')" || return
     [[ -n "$session_names" ]] || { echo "No running Herdr sessions."; return 1; }
 
-    s="$(print -r -- "$session_names" | fzf --height 40% --reverse)" || return
+    s="$(printf '%s\n' "$session_names" | fzf --height 40% --reverse)" || return
     [[ -n "$s" ]] && herdr session stop "$s"
 }
 
@@ -83,23 +83,39 @@ hrdx() {
 hrd() {
     local sessions_json session_names
     sessions_json="$(herdr session list --json)" || return
-    session_names="$(print -r -- "$sessions_json" | \
+    session_names="$(printf '%s\n' "$sessions_json" | \
         jq -r '.sessions[] | select((.running | not) and (.default | not)) | .name')" || return
     [[ -n "$session_names" ]] || { echo "No stopped Herdr sessions."; return 0; }
 
-    local -a sessions
-    sessions=("${(@f)session_names}")
-
     local s rc=0
-    for s in "${sessions[@]}"; do
+    while IFS= read -r -u 3 s; do
         herdr session delete "$s" || rc=1
-    done
+    done 3<<<"$session_names"
     return $rc
 }
 
 # Send one JSON request to a Herdr server socket and print its reply line.
+# zsh talks to the socket itself; bash has no Unix sockets, so it uses python3.
 _hr_api() {
     local sock="$1" request="$2" timeout="${3:-5}" fd line rc
+    if [[ -z "${ZSH_VERSION:-}" ]]; then
+        python3 -c '
+import socket, sys
+sock, request, timeout = sys.argv[1], sys.argv[2], float(sys.argv[3])
+try:
+    s = socket.socket(socket.AF_UNIX)
+    s.settimeout(timeout)
+    s.connect(sock)
+    s.sendall(request.encode() + b"\n")
+    line = s.makefile("rb").readline()
+except OSError:
+    sys.exit(1)
+if not line:
+    sys.exit(1)
+sys.stdout.write(line.decode().rstrip("\n") + "\n")
+' "$sock" "$request" "$timeout"
+        return
+    fi
     zmodload zsh/net/socket || return
     zsocket "$sock" 2>/dev/null || return
     fd=$REPLY
@@ -107,7 +123,7 @@ _hr_api() {
     read -r -t "$timeout" -u $fd line
     rc=$?
     exec {fd}>&-
-    (( rc == 0 )) && print -r -- "$line"
+    (( rc == 0 )) && printf '%s\n' "$line"
 }
 
 # Move running sessions (all, or the ones named) onto the installed Herdr
@@ -117,11 +133,11 @@ hru() {
 
     local client_json sessions_json rows exe version protocol
     client_json="$(herdr status client --json)" || return
-    exe="$(print -r -- "$client_json" | jq -r .binary)"
-    version="$(print -r -- "$client_json" | jq -r .version)"
-    protocol="$(print -r -- "$client_json" | jq -r .protocol)"
+    exe="$(printf '%s\n' "$client_json" | jq -r .binary)"
+    version="$(printf '%s\n' "$client_json" | jq -r .version)"
+    protocol="$(printf '%s\n' "$client_json" | jq -r .protocol)"
     sessions_json="$(herdr session list --json)" || return
-    rows="$(print -r -- "$sessions_json" | jq -r --args '.sessions[]
+    rows="$(printf '%s\n' "$sessions_json" | jq -r --args '.sessions[]
         | select(.running)
         | select(($ARGS.positional | length) == 0
                  or (.name as $n | $ARGS.positional | any(. == $n)))
@@ -130,20 +146,20 @@ hru() {
 
     local -a targets
     local row name sock pong server_version
-    for row in "${(@f)rows}"; do
+    while IFS= read -r -u 3 row; do
         name="${row%%$'\t'*}" sock="${row#*$'\t'}"
         pong="$(_hr_api "$sock" '{"id":"hru","method":"ping","params":{}}')" || {
             echo "  $name: server not answering, skipped"; continue; }
-        server_version="$(print -r -- "$pong" | jq -r .result.version)"
+        server_version="$(printf '%s\n' "$pong" | jq -r .result.version)"
         [[ "$server_version" == "$version" ]] && continue
-        if ! print -r -- "$pong" | jq -e '.result.capabilities.live_handoff' >/dev/null; then
+        if ! printf '%s\n' "$pong" | jq -e '.result.capabilities.live_handoff' >/dev/null; then
             echo "  $name: v$server_version can't hand off; stop and reattach it instead"
             continue
         fi
         echo "  $name  v$server_version -> v$version"
         targets+=("$row")
-    done
-    (( ${#targets} )) || { echo "Running sessions are already on v$version."; return 0; }
+    done 3<<<"$rows"
+    (( ${#targets[@]} )) || { echo "Running sessions are already on v$version."; return 0; }
 
     printf 'Hand off these sessions to v%s? Panes keep running. [y/N] ' "$version"
     local reply
@@ -159,15 +175,15 @@ hru() {
         echo "$name: handing off..."
         reply_json="$(_hr_api "$sock" "$request" 240)" || {
             echo "$name: no reply to the handoff request"; rc=1; continue; }
-        if print -r -- "$reply_json" | jq -e '.error' >/dev/null; then
-            echo "$name: handoff refused: $(print -r -- "$reply_json" | jq -c .error)"
+        if printf '%s\n' "$reply_json" | jq -e '.error' >/dev/null; then
+            echo "$name: handoff refused: $(printf '%s\n' "$reply_json" | jq -c .error)"
             rc=1; continue
         fi
         # The old server exits and the new one takes over the socket.
         for i in {1..30}; do
             sleep 1
             pong="$(_hr_api "$sock" '{"id":"hru","method":"ping","params":{}}')" || continue
-            [[ "$(print -r -- "$pong" | jq -r .result.version)" == "$version" ]] && break
+            [[ "$(printf '%s\n' "$pong" | jq -r .result.version)" == "$version" ]] && break
             pong=""
         done
         if [[ -n "$pong" ]]; then
