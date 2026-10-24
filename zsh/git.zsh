@@ -4,11 +4,11 @@
 _git_default_branch() {
     local ref b
     if ref="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
-        print -r -- "${ref#origin/}"
+        printf '%s\n' "${ref#origin/}"
         return
     fi
     for b in main master; do
-        git show-ref --verify --quiet "refs/heads/$b" && { print -r -- "$b"; return; }
+        git show-ref --verify --quiet "refs/heads/$b" && { printf '%s\n' "$b"; return; }
     done
     return 1
 }
@@ -41,8 +41,8 @@ gdone() {
     # Only delete it if the merged PR has exactly what's on the local branch.
     local_sha="$(git rev-parse "$branch")"
     pr_json="$(gh pr view "$branch" --json state,headRefOid 2>/dev/null)"
-    if [[ "$(print -r -- "$pr_json" | jq -r .state)" == MERGED &&
-          "$(print -r -- "$pr_json" | jq -r .headRefOid)" == "$local_sha" ]]; then
+    if [[ "$(printf '%s\n' "$pr_json" | jq -r .state)" == MERGED &&
+          "$(printf '%s\n' "$pr_json" | jq -r .headRefOid)" == "$local_sha" ]]; then
         git branch -D "$branch"
     else
         echo "Kept $branch: it isn't merged into $default (or has commits the PR doesn't)."
