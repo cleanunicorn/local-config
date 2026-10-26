@@ -11,6 +11,12 @@
 # The clone URL is rebuilt from user/repo. URLs keep their protocol (ssh or
 # https); user/repo shorthand uses $GHCLONE_PROTOCOL (default https).
 # GHCLONE_ROOT defaults to ~/Development/github.com.
+# Copy the last [[ =~ ]] capture groups into the caller's m: they land in
+# $match in zsh and $BASH_REMATCH in bash, and m[1] is the first group in both.
+_ghclone_captures() {
+  if [[ -n "${ZSH_VERSION:-}" ]]; then m=("${match[@]}"); else m=("${BASH_REMATCH[@]}"); fi
+}
+
 ghclone() {
   if [[ -z "$1" ]]; then
     echo "Usage: ghclone <github-url | user/repo>"
@@ -19,16 +25,19 @@ ghclone() {
 
   local url="${1%%[?#]*}"   # drop ?query and #fragment
   local user repo protocol
+  local -a m
   local shorthand_re='^([A-Za-z0-9-]+)/([A-Za-z0-9._-]+)/?$'
   local url_re='(^|[@/.])github\.com[:/]+([^/]+)/([^/]+)'
 
   if [[ "$url" =~ $shorthand_re ]]; then
-    user="${match[1]}"
-    repo="${match[2]}"
+    _ghclone_captures
+    user="${m[1]}"
+    repo="${m[2]}"
     protocol="${GHCLONE_PROTOCOL:-https}"
   elif [[ "$url" =~ $url_re ]]; then
-    user="${match[2]}"
-    repo="${match[3]}"
+    _ghclone_captures
+    user="${m[2]}"
+    repo="${m[3]}"
     if [[ "$url" == git@* || "$url" == ssh://* ]]; then
       protocol=ssh
     else

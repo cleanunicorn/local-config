@@ -7,7 +7,8 @@
 # 1. Symlinks every file under home/ to the same path under $HOME
 #    (home/.config/herdr/config.toml -> ~/.config/herdr/config.toml).
 #    An existing file in the way is moved aside to <name>.bak-<timestamp>.
-# 2. Adds one line to ~/.zshrc that sources local-config.zsh.
+# 2. Adds one line to ~/.zshrc and ~/.bashrc that sources local-config.zsh
+#    (for each shell that is installed or already has an rc file).
 #
 # Safe to run again: links that are already correct are left alone.
 set -eu
@@ -47,15 +48,22 @@ find . -type f | sed 's|^\./||' | sort | while IFS= read -r rel; do
     run ln -s "$src" "$dst"
 done
 
-zshrc="${ZDOTDIR:-$HOME}/.zshrc"
-if [ -f "$zshrc" ] && grep -q 'local-config\.zsh' "$zshrc"; then
-    echo "$zshrc already sources local-config.zsh"
-else
-    echo "Adding local-config.zsh to $zshrc"
-    if [ "$dry_run" -eq 0 ]; then
-        printf '\n# local-config\n[ -f "%s/local-config.zsh" ] && source "%s/local-config.zsh"\n' \
-            "$repo" "$repo" >> "$zshrc"
+add_source_line() {
+    rc="$1"
+    if [ -f "$rc" ] && grep -q 'local-config\.zsh' "$rc"; then
+        echo "$rc already sources local-config.zsh"
+    else
+        echo "Adding local-config.zsh to $rc"
+        if [ "$dry_run" -eq 0 ]; then
+            printf '\n# local-config\n[ -f "%s/local-config.zsh" ] && source "%s/local-config.zsh"\n' \
+                "$repo" "$repo" >> "$rc"
+        fi
     fi
-fi
+}
+
+zshrc="${ZDOTDIR:-$HOME}/.zshrc"
+bashrc="$HOME/.bashrc"
+if command -v zsh >/dev/null 2>&1 || [ -f "$zshrc" ]; then add_source_line "$zshrc"; fi
+if command -v bash >/dev/null 2>&1 || [ -f "$bashrc" ]; then add_source_line "$bashrc"; fi
 
 echo "Done. Open a new shell to pick up the helpers."

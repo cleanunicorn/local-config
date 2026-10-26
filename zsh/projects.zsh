@@ -5,7 +5,8 @@
 # without asking: p canary
 p() {
     local root="${GHCLONE_ROOT:-$HOME/Development/github.com}" dir
-    dir="$(cd "$root" && print -rl -- */*(N/) | \
+    dir="$(cd "$root" &&
+        find . -mindepth 2 -maxdepth 2 -type d ! -path '*/.*' | sed 's|^\./||' | sort | \
         fzf --height 40% --reverse --select-1 --exit-0 --query "$*")"
     [[ -n "$dir" ]] || { [[ -n "$*" ]] && echo "No project matches \"$*\"."; return 1; }
     cd "$root/$dir"
