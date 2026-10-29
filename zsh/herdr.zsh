@@ -46,6 +46,7 @@ hr() {
 }
 
 # Fuzzy-pick a named session and attach to it (needs fzf and jq).
+# Arguments prefill the search; a single match is taken without asking.
 # Hides the built-in default session; with no sessions, falls back to hr.
 hra() {
     [[ -n "$HERDR_ENV" ]] && { echo "Already inside a Herdr session."; return 1; }
@@ -56,11 +57,12 @@ hra() {
         jq -r '.sessions[] | select(.default | not) | .name')" || return
     [[ -n "$session_names" ]] || { hr; return; }
 
-    s="$(printf '%s\n' "$session_names" | fzf --height 40% --reverse)" || return
+    s="$(printf '%s\n' "$session_names" | fzf --height 40% --reverse --select-1 --exit-0 --query "$*")" || return
     [[ -n "$s" ]] && _hr_attach "$s" herdr session attach "$s"
 }
 
 # Fuzzy-pick a running session and stop it (state kept, attachable later).
+# Arguments prefill the search; a single match is taken without asking.
 hrk() {
     local sessions_json session_names s
     sessions_json="$(herdr session list --json)" || return
@@ -68,7 +70,7 @@ hrk() {
         jq -r '.sessions[] | select(.running) | .name')" || return
     [[ -n "$session_names" ]] || { echo "No running Herdr sessions."; return 1; }
 
-    s="$(printf '%s\n' "$session_names" | fzf --height 40% --reverse)" || return
+    s="$(printf '%s\n' "$session_names" | fzf --height 40% --reverse --select-1 --exit-0 --query "$*")" || return
     [[ -n "$s" ]] && herdr session stop "$s"
 }
 
@@ -206,12 +208,14 @@ hr [name]    Attach to the session named after the current folder
              otherwise creates it. Refuses to nest. Reconnects
              by itself when hru updates the server under it.
 
-hra          Fuzzy-pick a session and attach to it. (fzf, jq)
+hra [query]  Fuzzy-pick a session and attach to it. (fzf, jq)
+             Prefills search; a single match is taken immediately.
              Hides "default". No sessions yet -> runs hr.
              Reconnects by itself like hr.
 
-hrk          Fuzzy-pick a running session and STOP it. Its state is
+hrk [query]  Fuzzy-pick a running session and STOP it. Its state is
              kept, so the session can be attached/restored later.
+             Prefills search; a single match is taken immediately.
 
 hru [name…]  Move running sessions (all, or the named ones) onto
              the installed herdr version by live handoff. Panes

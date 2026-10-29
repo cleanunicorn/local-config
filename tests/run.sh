@@ -91,6 +91,14 @@ b/two
 $WORK/p/b/two" "$(run "$sh" 'GHCLONE_ROOT="$WORK/p"; p two && cat "$WORK/fzf-input" && pwd')"
 
     echo '{"sessions":[{"name":"run","running":true,"default":false},{"name":"old one","running":false,"default":false},{"name":"old2","running":false,"default":false},{"name":"default","running":false,"default":true}]}' >"$WORK/sessions.json"
+    check_eq "hra prefills a multiword query" "herdr session list --json
+herdr session attach old one" "$(run "$sh" 'hra old one && cat "$WORK/calls"')"
+    check_eq "hra unmatched query does not attach" "rc=1
+herdr session list --json" "$(run "$sh" 'hra missing; echo "rc=$?"; cat "$WORK/calls"')"
+    check_eq "hrk unmatched query does not stop another session" "rc=1
+herdr session list --json" "$(run "$sh" 'hrk old; echo "rc=$?"; cat "$WORK/calls"')"
+    check_eq "hrk matching query stops the session" "herdr session list --json
+herdr session stop run" "$(run "$sh" 'hrk run && cat "$WORK/calls"')"
     check_eq "hrd deletes stopped named sessions" "herdr session list --json
 herdr session delete old one
 herdr session delete old2" "$(run "$sh" 'hrd && cat "$WORK/calls"')"

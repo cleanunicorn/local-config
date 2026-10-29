@@ -75,8 +75,8 @@ in zsh and bash.
 | [`zldx <name>`](#zldx-name) | Zellij | Delete one exited Zellij session |
 | [`zlh`](#zellij) | Zellij | Print the Zellij help |
 | [`hr [name]`](#hr-name) | Herdr | Open the Herdr session for this folder |
-| [`hra`](#hra) | Herdr | Pick a Herdr session from a list and attach |
-| [`hrk`](#hrk) | Herdr | Pick a running Herdr session and stop it |
+| [`hra [query]`](#hra-query) | Herdr | Pick a Herdr session from a list and attach |
+| [`hrk [query]`](#hrk-query) | Herdr | Pick a running Herdr session and stop it |
 | [`hru [name…]`](#hru-name) | Herdr | Move running sessions to the new Herdr version without restarting them |
 | [`hrd`](#hrd) | Herdr | Delete every stopped Herdr session |
 | [`hrdx <name>`](#hrdx-name) | Herdr | Delete one stopped Herdr session |
@@ -311,17 +311,23 @@ Open the session for this folder, or `name` if you give one.
 ~/projects/blog $ hr scratch    # session "scratch", whatever folder you're in
 ```
 
-#### `hra`
+#### `hra [query]`
 
 Pick a session from a list (running and stopped, without `default`) and
 attach to it. If you have no sessions yet, it acts like `hr` and starts one
 for the current folder.
 
-#### `hrk`
+Words after `hra` prefill the search, like `p`: `hra canary`. A single
+match is taken immediately; no matches means nothing is attached.
+
+#### `hrk [query]`
 
 Pick a **running** session and **stop** it. Herdr saves its state, so
 `hr`/`hra` can restore it later. Only running sessions are listed; with none,
 it prints `No running Herdr sessions.`.
+
+Words after `hrk` prefill the search: `hrk canary`. A single match is
+stopped immediately; no matches means nothing is stopped.
 
 #### `hru [name…]`
 
