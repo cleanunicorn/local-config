@@ -62,4 +62,4 @@ bash devbox/tests/run.sh              # syntax + Docker integration test (isolat
 bash devbox/tests/run.sh --syntax-only
 ```
 
-Linux only (uses `stat -c`, `ss`, uid 1000).
+Works on Linux and macOS. On macOS the `devbox_port` "host port already in use" check is skipped (it uses `ss`).

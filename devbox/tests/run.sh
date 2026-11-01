@@ -181,7 +181,10 @@ trap 'FAIL=$((FAIL + 1)); echo "ABORT: interrupted" >&2; exit 130' INT TERM
 section "build $IMG"
 BUILD_LOG="$(mktemp "$TMPBASE/devbox-test-build.XXXXXX.log")"
 build_args=()
-[[ -S /var/run/docker.sock ]] && build_args=(--build-arg "DOCKER_GID=$(stat -c %g /var/run/docker.sock)")
+# The test image isn't built yet, so off Linux read the gid via the base image.
+if [[ -S /var/run/docker.sock ]] && gid="$(bash -c 'source "$1/devbox.zsh" && _devbox_sock_gid ubuntu:24.04' _ "$ROOT" 2>/dev/null)"; then
+    build_args=(--build-arg "DOCKER_GID=$gid")
+fi
 if docker build "${build_args[@]}" -t "$IMG" "$ROOT" >"$BUILD_LOG" 2>&1; then
     ok "image built"
 else

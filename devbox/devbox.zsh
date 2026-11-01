@@ -100,6 +100,19 @@ _devbox_ensure_net() {
 
 DEVBOX_DOCKER_SOCK="${DEVBOX_DOCKER_SOCK:-/var/run/docker.sock}"
 
+# Prints the group id the Docker socket has as a container sees it. On Linux
+# that is the host file's group. On macOS (Docker Desktop, Colima, OrbStack)
+# the daemon runs in a VM and a mounted socket is the VM's, not the host
+# file, so ask a container built from IMAGE (default: the devbox image).
+_devbox_sock_gid() {
+    if [[ "$(uname -s)" == Linux ]]; then
+        stat -c %g "$DEVBOX_DOCKER_SOCK"
+    else
+        docker run --rm -v "${DEVBOX_DOCKER_SOCK}:/var/run/docker.sock" --entrypoint stat \
+            "${1:-${DEVBOX_IMAGE}:latest}" -c %g /var/run/docker.sock
+    fi
+}
+
 # Sets _DEVBOX_DOCKER_ARGS to the docker run flags that hand the host's Docker
 # daemon to a devbox. The socket is owned by the host's docker group, so the
 # container user joins that gid. (An array, not echo, so it works in bash too.)
@@ -108,10 +121,12 @@ DEVBOX_DOCKER_SOCK="${DEVBOX_DOCKER_SOCK:-/var/run/docker.sock}"
 _devbox_docker_args() {
     local name="$1"
     [[ -S "$DEVBOX_DOCKER_SOCK" ]] || { echo "No Docker socket at ${DEVBOX_DOCKER_SOCK}." >&2; return 1; }
+    local gid
+    gid="$(_devbox_sock_gid)" || { echo "Could not read the Docker socket's group." >&2; return 1; }
     local project="$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g; s/^[^a-z0-9]*//')"
     _DEVBOX_DOCKER_ARGS=(
         -v "${DEVBOX_DOCKER_SOCK}:/var/run/docker.sock"
-        --group-add "$(stat -c %g "$DEVBOX_DOCKER_SOCK")"
+        --group-add "$gid"
         -e "DEVBOX_HOST_WORKSPACE=$PWD"
         -e "DEVBOX_NAME=$name"
         -e "COMPOSE_PROJECT_NAME=${project:-workspace}"
@@ -305,7 +320,13 @@ devbox_unport() {
 devbox_build() {
     local tag="${1:-$(date +%F)}"
     local -a args=(--build-arg "HERDR_CACHE_BUST=$(date +%s)")
-    [[ -S "$DEVBOX_DOCKER_SOCK" ]] && args+=(--build-arg "DOCKER_GID=$(stat -c %g "$DEVBOX_DOCKER_SOCK")")
+    # Off Linux the gid comes from a container, so it needs an existing image;
+    # without one the Dockerfile default is used (gid 0 on Docker Desktop
+    # already has a name, so nothing is lost).
+    local gid
+    if [[ -S "$DEVBOX_DOCKER_SOCK" ]] && { [[ "$(uname -s)" == Linux ]] || docker image inspect "${DEVBOX_IMAGE}:latest" >/dev/null 2>&1; }; then
+        gid="$(_devbox_sock_gid 2>/dev/null)" && args+=(--build-arg "DOCKER_GID=$gid")
+    fi
     docker build "${args[@]}" -t "${DEVBOX_IMAGE}:latest" -t "${DEVBOX_IMAGE}:${tag}" "$DEVBOX_DIR" \
         && echo "Built ${DEVBOX_IMAGE}:latest and ${DEVBOX_IMAGE}:${tag}. Run 'devbox_recreate' in a project to move it over."
 }
