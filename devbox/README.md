@@ -1,7 +1,7 @@
 # devbox
 
 One long-lived Docker container per project folder, with Claude Code, Node 22,
-`gh`, and herdr preinstalled. Shell functions for zsh and bash.
+`gh`, uv and herdr preinstalled. Shell functions for zsh and bash.
 
 ## Install
 
