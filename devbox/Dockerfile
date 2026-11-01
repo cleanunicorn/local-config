@@ -31,6 +31,13 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && apt-get update && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
+# uv — Python package/project manager. Installed to /usr/local/bin (outside
+# /home/dev) so it reaches existing homes on devbox_recreate; UV_NO_MODIFY_PATH
+# stops the installer editing root's shell profile. Update with devbox_build.
+RUN curl -LsSf https://astral.sh/uv/install.sh \
+      | env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh \
+    && uv --version
+
 # Docker client + compose/buildx plugins (no daemon). Only useful in devboxes
 # started with --docker, which mount the host's socket.
 RUN install -m 0755 -d /etc/apt/keyrings \
