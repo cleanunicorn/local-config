@@ -4,6 +4,11 @@
 # (hru, herdr update --handoff) replaces the server under it. Other exits
 # (detach, stop, another client taking over) end the loop as usual.
 _hr_attach() {
+    if [[ -n "${ZSH_VERSION:-}" ]]; then
+        # MULTIOS would also send stdout through the stderr pipeline, duplicating
+        # Herdr's ANSI screen updates. Restore the caller's options on return.
+        setopt localoptions nomultios
+    fi
     local session_name="$1" err rc started tries=0
     shift
     err="$(mktemp)" || return
